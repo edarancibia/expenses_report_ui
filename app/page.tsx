@@ -14,9 +14,7 @@ export default function Home() {
 
   const checkHealth = async () => {
     try {
-      const res = await axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/healthcheck`, {
-        timeout: 5000,
-      });
+      const res = await axios.get('/api/v1/healthcheck', { timeout: 5000 });
       if (res.status === 200) {
         setApiReady(true);
         setWaking(false);
@@ -94,7 +92,7 @@ export default function Home() {
     formData.append('end_date', endDate || '');
 
     try {
-      await axios.post(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/upload-zip/`, formData, {
+      await axios.post('/api/v1/upload-zip/', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
     } catch {
