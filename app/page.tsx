@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, type DragEvent, type ChangeEvent } from 'react';
+import { useState, useEffect, useRef, type DragEvent, type ChangeEvent } from 'react';
 import axios from 'axios';
 
 export default function Home() {
@@ -9,17 +9,35 @@ export default function Home() {
   const [status, setStatus] = useState<'idle' | 'uploading' | 'success' | 'error'>('idle');
   const [message, setMessage] = useState('');
   const [waking, setWaking] = useState(false);
+  const [apiReady, setApiReady] = useState(false);
+  const [countdown, setCountdown] = useState(30);
 
-  const handleWake = async () => {
-    setWaking(true);
+  const checkHealth = async () => {
     try {
       await axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/healthcheck`);
-    } catch {
-      // timeout is expected
-    } finally {
+      setApiReady(true);
       setWaking(false);
+    } catch {
+      setCountdown(30);
     }
   };
+
+  const handleWake = () => {
+    setApiReady(false);
+    setWaking(true);
+    setCountdown(30);
+    checkHealth();
+  };
+
+  useEffect(() => {
+    if (!waking || apiReady) return;
+    if (countdown > 0) {
+      const t = setTimeout(() => setCountdown((c) => c - 1), 1000);
+      return () => clearTimeout(t);
+    }
+    const t = setTimeout(checkHealth, 0);
+    return () => clearTimeout(t);
+  }, [waking, apiReady, countdown]);
   const today = () => new Date().toISOString().slice(0, 10);
   const [startDate, setStartDate] = useState(today());
   const [endDate, setEndDate] = useState(today());
@@ -97,7 +115,7 @@ export default function Home() {
 
         <button
           onClick={handleWake}
-          disabled={waking}
+          disabled={waking || apiReady}
           className="mb-6 w-full py-3 px-6 rounded-xl font-semibold text-blue-700 transition-all bg-blue-100 hover:bg-blue-200 active:bg-blue-300 disabled:bg-blue-100 disabled:cursor-not-allowed shadow-lg shadow-blue-100 flex items-center justify-center gap-2"
         >
           {waking ? (
@@ -106,7 +124,16 @@ export default function Home() {
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
               </svg>
-              Iniciando...
+              <span>
+                Iniciando API... <span className="font-bold">{countdown}s</span>
+              </span>
+            </span>
+          ) : apiReady ? (
+            <span className="flex items-center justify-center gap-2">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              API lista
             </span>
           ) : (
             <span className="flex items-center justify-center gap-2">
@@ -117,6 +144,15 @@ export default function Home() {
             </span>
           )}
         </button>
+
+        {apiReady && (
+          <div className="mb-6 flex items-center justify-center gap-2 p-3 rounded-xl text-sm font-medium bg-green-50 text-green-700 border border-green-200">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+            </svg>
+            La aplicación está lista para usarse
+          </div>
+        )}
 
         <div
           onDragOver={handleDragOver}
