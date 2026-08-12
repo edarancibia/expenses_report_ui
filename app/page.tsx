@@ -14,12 +14,18 @@ export default function Home() {
 
   const checkHealth = async () => {
     try {
-      await axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/healthcheck`);
-      setApiReady(true);
-      setWaking(false);
+      const res = await axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/healthcheck`, {
+        timeout: 5000,
+      });
+      if (res.status === 200) {
+        setApiReady(true);
+        setWaking(false);
+        return;
+      }
     } catch {
-      setCountdown(30);
+      // API not ready yet
     }
+    setCountdown(30);
   };
 
   const handleWake = () => {
